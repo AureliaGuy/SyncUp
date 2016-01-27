@@ -16,7 +16,7 @@ class addSongs(object):
 		self.session = spotify_session().session
 		self.name_of_tracks = {}
 
-	#Initialization of playlists and songs --- run once when first creating playlists
+	#Initialization of playlists and songs -- run once when first creating playlists
 	def add_playlists(self):
 		pythonStart = PandoraClient("__insert_Pandora_username__", "__insert_Pandora_password__")
 		pythonStart.liked_tracks()
