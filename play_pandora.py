@@ -23,7 +23,7 @@ from multiprocessing import Process
 import multiprocessing as mp
 import time
 
-#Testing for correct station being played in Spotify"
+#Tests for correct station being played on Spotify
 station = "Today's Hits Radio"
 station_dict = {'2723668143942053214': "Shuffle", "2723668139647085918": "Today's Hits Radio"}
 
