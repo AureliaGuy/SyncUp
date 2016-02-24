@@ -23,13 +23,15 @@ from multiprocessing import Process
 import multiprocessing as mp
 import time
 
-#Tests for correct station being played on Spotify
+"""Tests for correct station being played on Spotify""""
 station = "Today's Hits Radio"
 station_dict = {'2723668143942053214': "Shuffle", "2723668139647085918": "Today's Hits Radio"}
+global driver
 
 class PandoraClient(object):
     URL_TO_LOGIN = "https://www.pandora.com/login"
-
+    
+    """"Initialize PandoraClient class to retrieve liked songs from Pandora"""
     def __init__(self, user, password):
         self.session = requests.session()
         self.USERNAME = "__insert_Pandora_username__"
@@ -38,7 +40,8 @@ class PandoraClient(object):
         self.stations = []
         self.station_dictionary = {}
         response = self.session.post(PandoraClient.URL_TO_LOGIN, data = {"login_username": user,"login_password": password,})
-        
+   
+    """Test method"""   
     def ad_check(self):
         PANDORA_URL ="http://www.pandora.com"
         count = 0
@@ -48,7 +51,8 @@ class PandoraClient(object):
             x = full.cookies.items()
             for i, j in x:
                 print i +  " " + j
-
+    
+    """Retrieve liked songs, artists and stations from pandora""""
     def liked_tracks(self):
         like_start_index = 0
         thumb_start_index = 0
@@ -64,10 +68,12 @@ class PandoraClient(object):
             for child in full:
                 count += 1
                 s += child
-            #No more songs to add
+                
+            """If there are no more songs to add, breaks out of loop"""
             if (count == 1):
                 break
-            #The song's index will correspond to the index of its station
+            
+            """The index of the song and artist will correspond to the index of its stationname"""
             for x in re.finditer('class="like_context_stationname">', s):
                 index_start = x.start() + 33
                 index_end = index_start
@@ -76,8 +82,9 @@ class PandoraClient(object):
                 id_number = x.start()
                 while (s[id_number] != "="):
                     id_number -= 1
-                #station_dict[s[id_number + 1: x.start()]] = s[index_start: index_end]
                 self.stations.append(s[index_start: index_end])
+                
+            """The artist's index in list will correspond to the index of the song and stationname"""
             for j in re.finditer('by <a href="/', s):
                 index_start = j.start() + 14
                 while (s[index_start] != ">"):
@@ -87,35 +94,41 @@ class PandoraClient(object):
                 while (s[index_end] != "<"):
                     index_end += 1
                 self.artists.append(s[index_start: index_end])
-                #print s[index_start: index_end] 
+                
+            """Retrieve song name and append it to list of songs"""
             for i in re.finditer('class="first"',s):
                 index_start = i.start() + 14
                 index_end = index_start
                 while (s[index_end] != "<" and s[index_end] != "("):
                     index_end += 1
                 self.songs.append(s[index_start: index_end])
-                #print s[index_start: index_end] 
             thumb_start_index += 10
         count = 0;
+        
+        """If already created station playlist, append song to the list of songs for that station. Otherwise, 
+        create a new dictionary list entry for that station"""
         while (count < len(self.stations)):
             if (self.stations[count] in self.station_dictionary):
                 self.station_dictionary[self.stations[count]].append(self.songs[count])
             else:
                 self.station_dictionary[self.stations[count]] = [self.songs[count]]
             count += 1
+            
+    """Method initializes and runs mitm proxy"""
     def call_proxy(self, q):
         config = proxy.ProxyConfig(port=8080)
         server = proxy.server.ProxyServer(config)
         m = StickyMaster(server, q)
         m.run()
 
+    """Open pandora with multithreading, so that we can listen to Pandora while monitoring http feed"""
     def open_pandora(self):
-        
         q = mp.Queue()
         mitm_proxy = Process(target=self.call_proxy, args=(q,))
         mitm_proxy.start()
         play_session = play_spotify(station)
         
+        """Use webdriver to open and login to user's Pandora account"""
         while (True):    
             initial_size = q.qsize()
             PROXY_PORT = "8080"
@@ -134,6 +147,7 @@ class PandoraClient(object):
             driver.set_window_size(3000, 5000)
             driver.set_window_position(200, 200)
 
+            """Web scraping of pertinent information for webdriver to login to Pandora""" 
             username = "__insert_Pandora_username__"
             password = "__insert_Pandora_password__"
             driver.get("http://www.pandora.com")
@@ -142,17 +156,19 @@ class PandoraClient(object):
             driver.find_element(By.CSS_SELECTOR, "div.formField:nth-child(2) > input:nth-child(1)").send_keys(password)
             driver.find_element(By.CSS_SELECTOR, "input.btn_bg").click()    
 
+            """Continue until a command to switch to spotify is appended to q in parallel process"""
             while (initial_size == q.qsize()):
                 continue
-
+                
+            """Quit driver once command appended to q"""
             driver.quit()
-
+            
+            """Open Spotify webbrowser and play Spotify"""
             webbrowser.get("/usr/bin/google-chrome").open_new("https://play.spotify.com/user/lia-777/playlist/1wypu7dCiXSvH40RKhiiIS")
             play_session.play()
            
 
-    
-
+"""Uses Spotify API to play song from selected Pandora playlist until switch back to Pandora after advertisement"""
 class play_spotify(object):
     def __init__(self, station):
         self.session = spotify.Session()
@@ -163,7 +179,8 @@ class play_spotify(object):
         self.session.login("__insert_Spotify_username__", "__insert_Spotify_password__")
         while self.session.connection.state != spotify.ConnectionState.LOGGED_IN:
             self.session.process_events()
-
+            
+    """Play a random song from selected playlist"""
     def play(self):    
         for playlist in self.session.playlist_container.load():
             print playlist.load().name
@@ -181,7 +198,8 @@ class play_spotify(object):
                
 
 class spotify_session(object):
-
+    
+    """Initialize Spotify session"""
     def __init__(self):
         logged_in_event = threading.Event()
         def connection_state_listener(session):
@@ -197,7 +215,7 @@ class spotify_session(object):
         self.session.login("__insert_Spotify_username__", "__insert_Spotify_password__")
         logged_in_event.wait()
 
-
+"""Class for man-in-the-middle proxy that monitors http traffic from Pandora"""
 class StickyMaster(controller.Master):
 
     def __init__(self, server, q):
@@ -210,20 +228,19 @@ class StickyMaster(controller.Master):
             return controller.Master.run(self)
         except KeyboardInterrupt:
             self.shutdown()
-
-    def skip_limit(self):
-        return True
-
+    
+    """Pandora sends how many skips user has remaining in http traffic to and from site"""      
     def out_of_skips(self, flow_str):
         return ("out_of_station_skips=true" in flow_str)
     
+    """Switches to spotify if reach skip limit or advertisement- information request from Pandora"""
     def handle_request(self, flow):
         if self.is_ad(str(flow.request)) or self.out_of_skips(str(flow.request)):
             self.q.put("switch to spotify")
         flow.reply()
    
 
-    #Pandora sends these GET http requests when an advertisement replaces the music
+    """Pandora sends identifiable GET http requests when an advertisement replaces the music"""
     def is_ad(self, flow_str):
         strRedirect = "http://www.pandora.com:80/util/mediaserverPublicRedirect." 
         strAudio = "audio"
@@ -236,23 +253,19 @@ class StickyMaster(controller.Master):
            return True
         else:
             return False
-
+    
+    """Proxy checks to see if Pandora is playing advertisement or has reached skip limit. 
+    If so, it puts a command to switch to spotify in the pipe. Information response to Pandora"""
     def handle_response(self, flow):
         if self.is_ad(str(flow.request)) or self.out_of_skips(str(flow.request)):
-            print "haha"
             self.q.put("switch to spotify")
         flow.reply()
 
-#Find the URI of the pandora station playlist you are currently on and open that playlist in spotify
+"""Find the URI of the pandora station playlist you are currently on and open that playlist in spotify"""
 def main(argv):
-    global driver
     p = PandoraClient("__insert_Pandora_username__", "__insert_Pandora_password__")
-    #p.liked_tracks()
     p.open_pandora()
-    #webbrowser.get("/usr/bin/google-chrome").open_new("https://play.spotify.com/user/lia-777/playlist/1wypu7dCiXSvH40RKhiiIS")
-    #play_session = play_spotify(station).play()
-    #webbrowser.open_new("http://pandora.com")
-    ##Next step --- use pyspotify Player class to play song from playlist
-    #p.ad_check()
+
+"""Main function"""
 if __name__ == '__main__':
   main(sys.argv)
