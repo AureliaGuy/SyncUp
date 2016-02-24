@@ -5,6 +5,7 @@ from pythonPandora import PandoraClient
 from pythonPandora import spotify_session
 import os
 
+"""Class adds songs to Spotify playlists from Pandora"""
 class addSongs(object):
     url_to_login = "https://www.spotify.com/login"
     stationDict = {}
@@ -17,7 +18,7 @@ class addSongs(object):
         self.session = spotify_session().session
         self.name_of_tracks = {}
 
-    #Initialization of playlists and songs --- run once when first creating playlists
+    """Initialization of playlists and songs. Run once when first creating playlists"""
     def add_playlists(self):
         pythonStart = PandoraClient("__insert_Pandora_username__", "__insert_Pandora_password__")
         pythonStart.liked_tracks()
@@ -47,7 +48,8 @@ class addSongs(object):
                     except IndexError:
                         print song
 
-    #If you no longer like song, will remove from playlist
+    """Updates the playlists, adding songs that the user has recently liked and deleting songs that the 
+    user no longer likes"""
     def update_playlists(self):
         pythonStart = PandoraClient("__insert_Pandora_username__", "__insert_Pandora_password__")
         pythonStart.liked_tracks()
@@ -68,7 +70,7 @@ class addSongs(object):
                         count += 1
         self.add_playlists()
 
-
+    """Retrieves iTunes song titles from the user's computer"""
     def retrieve_iTunes(self, filename):
         directory = os.path.dirname(filename)
         subDirectories = [x for x in os.listdir(directory)]
@@ -83,7 +85,8 @@ class addSongs(object):
                 break
             else:
                 self.retrieve_iTunes(filename + i + "/")
-
+                
+    """Creates spotify playlist of all downloaded songs from iTunes"""
     def add_iTunes(self):
         trackList = []
         if "iTunes_playlist" not in addSongs.stationsSet:
